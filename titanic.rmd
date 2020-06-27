@@ -1,0 +1,94 @@
+---
+title: "R und die Titanic"
+output:
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+    code_folding: none
+    theme: "spacelab"
+    highlight: "tango"
+    df_print: paged
+---
+
+# Titanic Datensatz
+Der Titanic Datensatz ist eine Sammlung der Hintergründe der Passagiere der Titanic. Der Datensatz kommt ursprünglich aus
+Hind, P. (1999). Encyclopedia Titanica. *Online. Internet. Available http://atschool.eduweb.co.uk/phind*
+
+Den Datensatz findet man mittlerweile unter:
+
+ * http://biostat.mc.vanderbilt.edu/wiki/pub/Main/DataSets/titanic3.csv
+ 
+Weiter Informationen zum Datensatz erhalten Sie auf:
+
+ * http://biostat.mc.vanderbilt.edu/wiki/pub/Main/DataSets/titanic3info.txt
+
+```{r echo = FALSE, message = FALSE}
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(pacman, tidyverse)
+df <- read_csv("titanic3.csv") %>%
+    mutate_at(c("pclass", "sex", "embarked"), as.factor) %>%
+    mutate_at(c("sibsp", "parch"), as.integer) %>%
+    mutate_at("survived", as.logical)
+```
+
+## Der Datensatz
+```{r echo = FALSE}
+df
+```
+
+## Statistik
+
+```{r echo = FALSE}
+df %>% select(pclass, survived, sex, age, sibsp, parch, fare, embarked) %>% summary()
+```
+## Überleben nach Geschlecht
+```{r echo = FALSE}
+df %>% group_by(sex) %>% summarise(survival_rate = mean(survived))
+```
+```{r echo = FALSE}
+df %>% select(sex, survived) %>% group_by(sex) %>% summarise(survival_rate = mean(survived)) %>%
+  ggplot() +
+  geom_col(aes(x=sex, y=c(1, 1)), fill="#F8766D") + 
+  geom_col(aes(x=sex, y=survival_rate), fill = "#00BFC4") +
+  ylab("Überlebensrate") + xlab("Geschlecht") +
+  theme(legend.position = "top") + 
+  ggtitle("Überleben nach Geschlecht", subtitle = "Titanic dataset: http://biostat.mc.vanderbilt.edu/wiki/pub/Main/DataSets/titanic3.csv")
+```
+
+## Überleben nach Klasse
+```{r echo = FALSE}
+df %>% group_by(pclass) %>% summarise(survival_rate = mean(survived))
+```
+```{r echo = FALSE}
+df %>% select(pclass, survived) %>% group_by(pclass) %>% summarise(survival_rate = mean(survived)) %>%
+  ggplot() +
+  geom_col(aes(x=pclass, y=c(1, 1, 1)), fill="#F8766D") +
+  geom_col(aes(x=pclass, y=survival_rate), fill="#00BFC4") +
+  ylab("Überlebensrate") + xlab("Ticketklasse") +
+  theme(legend.position = "top") + 
+  ggtitle("Überleben nach Ticketklasse", subtitle = "Titanic dataset: http://biostat.mc.vanderbilt.edu/wiki/pub/Main/DataSets/titanic3.csv")
+```
+
+## Überleben nach Alter, Geschlecht und Klasse
+
+```{r echo = FALSE}
+df %>% select(age, survived, sex, pclass) %>% drop_na %>%
+  mutate(binned_age = cut_width(age, width=3, labels=FALSE)*3) %>% group_by(binned_age, sex, pclass) %>%
+  summarise(survival_rate = mean(survived)) %>%
+  ggplot() + geom_point(mapping=aes(x=binned_age, y=survival_rate, color=sex, shape=pclass), alpha=0.9) +
+  ylab("Überlebensrate") + xlab("Alter") +
+  labs(colour = "Geschlecht", shape = "Ticketklasse") +
+  ggtitle("Überleben nach Alter, Geschlecht und Klasse", subtitle = "Titanic dataset: http://biostat.mc.vanderbilt.edu/wiki/pub/Main/DataSets/titanic3.csv")
+```
+
+```{r echo = FALSE}
+df %>% select(sex, fare, pclass, survived) %>% drop_na %>%
+  mutate(binned_fare = cut_width(fare, width=15, labels=FALSE) * 15) %>%
+  group_by(sex, binned_fare, pclass) %>% summarise(survival_rate = mean(survived)) %>%
+  ggplot() + geom_point(aes(x=binned_fare, y=survival_rate, color=pclass)) +
+  labs(colour = "Ticketklasse") +
+  theme(legend.position = "top") + 
+  ylab("Überlebensrate") + xlab("Ticketpreis") +
+  ggtitle("Überleben nach Ticketpreis und -klasse", subtitle = "Titanic dataset: http://biostat.mc.vanderbilt.edu/wiki/pub/Main/DataSets/titanic3.csv")
+```
